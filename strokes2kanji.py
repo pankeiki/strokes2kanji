@@ -153,7 +153,6 @@ def main():
                     else:
                         d = d[1][c]
                 except KeyError as e:
-                    print("KeyError:", e)
                     d = {}
                 s += c
             elif c == '-' and s and d_stack:
