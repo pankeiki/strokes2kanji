@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 
 from defusedxml.ElementTree import parse as parse_xml
-import sys, os.path
+import sys
+import os.path
+import copy
 
 stroke_db = None
 kanjivg_ns = "{http://kanjivg.tagaini.net}"
@@ -10,19 +12,28 @@ def transform_stroke_type(s):
     # Possible stroke types, from https://github.com/KanjiVG/kanjivg/blob/master/strokes.txt:
     # ㇔ ㇐ ㇑ ㇒ ㇏ ㇀ ㇖ ㇚ ㇂ ㇙ ㇕ ㇗ ㇛ ㇜ ㇇ ㇄ ㇆ ㇟ ㇊ ㇉ ㇋ ㇌ ㇈ ㇅ ㇞
     # Group them into 5 like Wubihua
-    horizontal = ['㇐', '㇀']
-    vertical = ['㇑']
-    falling_left = ['㇒']
-    dot = ['㇔', '㇏']
-    # The rest is assumed to be Turning.
-    s = s[0]
-    checklists = (horizontal, vertical, falling_left, dot)
-    for n, l in enumerate(checklists):
-        if s in l:
-            return n + 1
-    return len(checklists) + 1
+    horizontal = "㇐㇀"
+    vertical = "㇑"
+    falling_left = "㇒"
+    dot = "㇔㇏"
+    turning = "㇖㇚㇂㇙㇕㇗㇛㇜㇇㇄㇆㇟㇊㇉㇋㇌㇈㇅㇞"
+    # If there are multiple possible strokes, return a list.
+    # Also strip letter suffix, e.g. "b", "v", "a".
+    untransformed_strokes = [i[0] for i in s.split('/')]
+    transformed_strokes = set()
+    checklists = (horizontal, vertical, falling_left, dot, turning)
+    for stroke in untransformed_strokes:
+        found = False
+        for n, l in enumerate(checklists):
+            if found: break
+            elif stroke in l:
+                transformed_strokes.add(n + 1)
+                found = True
+        if not found:
+            raise ValueError("Unrecognized stroke type: {0}".format(stroke))
+    return transformed_strokes
 
-def flatten_stroke_groups(g):
+def extract_stroke_groups(g):
     if g.tag == 'path':
         return [transform_stroke_type(g.get(kanjivg_ns + 'type'))]
 
@@ -33,8 +44,33 @@ def flatten_stroke_groups(g):
 
     ret = []
     for child in g:
-        ret.extend(flatten_stroke_groups(child))
+        ret.extend(extract_stroke_groups(child))
     return ret
+
+def convert_sparse_sets_to_full(space, sparse_set):
+    # Sparse set:
+    # [{1}, {2, 3}, {4, 5}]
+    #
+    # Full set, converted from the above:
+    # [ [1, 2, 4],
+    #   [1, 2, 5],
+    #   [1, 3, 4],
+    #   [1, 3, 5] ]
+    n = 1
+    while sparse_set:
+        current_level = sparse_set.pop(0)
+        if len(current_level) > 1:
+            cp = copy.deepcopy(space)
+            m = n * len(current_level)
+            o = n
+            while n < m:
+                n += o
+                space.extend(cp)
+            for i, lst in enumerate(space):
+                lst.append(list(current_level)[i // o])
+        else:
+            for lst in space:
+                lst.append(list(current_level)[0])
 
 def convert_kanji_to_strokes(stroke_db_root):
     # stroke_db: n-ary tree allowing traversal to kanji by stroke types.
@@ -48,23 +84,24 @@ def convert_kanji_to_strokes(stroke_db_root):
             continue
         k = g.get(kanjivg_ns + 'element')
         try:
-            strokes = flatten_stroke_groups(g)
+            sparse_strokes_sets = extract_stroke_groups(g)
         except Exception as e:
             print("Giving up on {0} due to error: {1}".format(k, e))
             continue
-        d = stroke_db
-        for stroke in strokes[:-1]:
-            if stroke not in d:
-                d[stroke] = ([], {})
-            d = d[stroke][1]
-        if strokes[-1] not in d:
-            d[strokes[-1]] = ([k], {})
-        else:
-            d[strokes[-1]][0].append(k)
-    return stroke_db
 
-def find(stroke_db, strokes, n=10):
-    pass
+        strokes_sets = [[]]
+        convert_sparse_sets_to_full(strokes_sets, sparse_strokes_sets)
+        for strokes in strokes_sets:
+            d = stroke_db
+            for stroke in strokes[:-1]:
+                if stroke not in d:
+                    d[stroke] = ([], {})
+                d = d[stroke][1]
+            if strokes[-1] not in d:
+                d[strokes[-1]] = ([k], {})
+            else:
+                d[strokes[-1]][0].append(k)
+    return stroke_db
 
 def main():
     global stroke_db
@@ -109,7 +146,7 @@ def main():
                         probe_list.append(probe[1][stroke])
             if temp:
                 print(' '.join(temp))
-                
+
     return 0
 
 if __name__ == "__main__":
