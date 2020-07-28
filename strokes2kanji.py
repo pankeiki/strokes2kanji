@@ -30,7 +30,8 @@ def transform_stroke_type(s):
                 transformed_strokes.add(n + 1)
                 found = True
         if not found:
-            raise ValueError("Unrecognized stroke type: {0}".format(stroke))
+            # Found unrecognized stroke type. Make it a wildcard.
+            transformed_strokes.update({1, 2, 3, 4, 5})
     return transformed_strokes
 
 def extract_stroke_groups(g):
