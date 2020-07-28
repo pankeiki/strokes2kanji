@@ -108,6 +108,7 @@ def main():
     stroke_db = convert_kanji_to_strokes(parse_xml(os.path.join("database", "kanjivg.xml")).getroot())
     d = stroke_db
     s = ""
+    d_stack = []
     while 1:
         i = input("> ")
         if i == "0":
@@ -118,23 +119,26 @@ def main():
             break
         for c in i:
             if c in "12345":
+                d_stack.append(d)
                 try:
                     if not s:
                         d = d[int(c)]
                     else:
                         d = d[1][int(c)]
                 except KeyError as e:
-                    print("No more match. Enter 0 to start over.")
                     d = {}
                 s += c
+            elif c == '-' and s and d_stack:
+                s = s[:-1]
+                d = d_stack.pop()
         if d and s:
             print("{0}: {1}".format(s, ' '.join(d[0])))
             probe_list = [d]
             temp = []
             while 1:
+                temp = list(set(temp))
                 if not probe_list:
                     break
-                temp = list(set(temp))
                 if len(temp) > 9:
                     break
                 probe = probe_list.pop()
@@ -147,6 +151,8 @@ def main():
                         probe_list.append(probe[1][stroke])
             if temp:
                 print(' '.join(temp))
+        elif not d:
+            print("{0}: No match. Enter 0 to start over or - to go back once.".format(s))
 
     return 0
 
