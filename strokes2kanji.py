@@ -134,6 +134,7 @@ def main():
             while 1:
                 if not probe_list:
                     break
+                temp = list(set(temp))
                 if len(temp) > 9:
                     break
                 probe = probe_list.pop()
