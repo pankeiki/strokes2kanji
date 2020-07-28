@@ -96,12 +96,12 @@ def convert_kanji_to_strokes(stroke_db_root):
             d = stroke_db
             for stroke in strokes[:-1]:
                 if stroke not in d:
-                    d[stroke] = ([], {})
+                    d[stroke] = (set(), {})
                 d = d[stroke][1]
             if strokes[-1] not in d:
-                d[strokes[-1]] = ([k], {})
+                d[strokes[-1]] = ({k}, {})
             else:
-                d[strokes[-1]][0].append(k)
+                d[strokes[-1]][0].add(k)
     return stroke_db
 
 def main():
