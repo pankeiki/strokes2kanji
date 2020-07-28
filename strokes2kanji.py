@@ -4,8 +4,8 @@ from defusedxml.ElementTree import parse as parse_xml
 import sys
 import os.path
 import copy
+import json
 
-stroke_db = None
 kanjivg_ns = "{http://kanjivg.tagaini.net}"
 
 def transform_stroke_type(s):
@@ -19,7 +19,12 @@ def transform_stroke_type(s):
     turning = "㇖㇚㇂㇙㇕㇗㇛㇜㇇㇄㇆㇟㇊㇉㇋㇌㇈㇅㇞"
     # If there are multiple possible strokes, return a list.
     # Also strip letter suffix, e.g. "b", "v", "a".
-    untransformed_strokes = [i[0] for i in s.split('/')]
+    try:
+        untransformed_strokes = [i[0] for i in s.split('/')]
+    except IndexError as e:
+        # kanjivg has a 'path' element with an empty stroke.
+        # Replace it with wildcard.
+        return {str(i) for i in range(1, 6)}
     transformed_strokes = set()
     checklists = (horizontal, vertical, falling_left, dot, turning)
     for stroke in untransformed_strokes:
@@ -27,21 +32,27 @@ def transform_stroke_type(s):
         for n, l in enumerate(checklists):
             if found: break
             elif stroke in l:
-                transformed_strokes.add(n + 1)
+                transformed_strokes.add(str(n + 1))
                 found = True
         if not found:
             # Found unrecognized stroke type. Make it a wildcard.
-            transformed_strokes.update({1, 2, 3, 4, 5})
+            return {str(i) for i in range(1, 6)}
     return transformed_strokes
 
 def extract_stroke_groups(g):
     if g.tag == 'path':
-        return [transform_stroke_type(g.get(kanjivg_ns + 'type'))]
+        stroke = g.get(kanjivg_ns + 'type')
+        if not stroke:
+            # kanjivg has a 'path' element without a stroke type.
+            # Make it a wildcard.
+            return [{str(i) for i in range(1, 6)}]
+        return [transform_stroke_type(stroke)]
 
     if g.tag != 'g':
         raise ValueError("Expected only elements with tag == 'g' or 'path'.")
     elif len(g) == 0:
-        raise ValueError("Expected g to have children.")
+        # g has no children. Make this into one wildcard stroke.
+        return [{str(i) for i in range(1, 6)}]
 
     ret = []
     for child in g:
@@ -96,17 +107,31 @@ def convert_kanji_to_strokes(stroke_db_root):
             d = stroke_db
             for stroke in strokes[:-1]:
                 if stroke not in d:
-                    d[stroke] = (set(), {})
+                    d[stroke] = ([], {})
                 d = d[stroke][1]
             if strokes[-1] not in d:
-                d[strokes[-1]] = ({k}, {})
+                d[strokes[-1]] = ([k], {})
             else:
-                d[strokes[-1]][0].add(k)
+                if k not in d[strokes[-1]][0]:
+                    d[strokes[-1]][0].append(k)
     return stroke_db
 
 def main():
-    global stroke_db
-    stroke_db = convert_kanji_to_strokes(parse_xml(os.path.join("database", "kanjivg.xml")).getroot())
+    # Read from json cache if one is present.
+    cache_path = os.path.join("database", "kanjivg.cache.json")
+    stroke_db = {}
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path) as f:
+                stroke_db = json.load(f)
+        except json.decoder.JSONDecodeError as e:
+            print("Failed to decode kanjivg cache; deleting.")
+            os.remove(cache_path)
+    if not stroke_db:
+        stroke_db = convert_kanji_to_strokes(parse_xml(os.path.join("database", "kanjivg.xml")).getroot())
+        with open(cache_path, 'w') as f:
+            json.dump(stroke_db, f)
+
     d = stroke_db
     s = ""
     d_stack = []
@@ -124,10 +149,11 @@ def main():
                 d_stack.append(d)
                 try:
                     if not s:
-                        d = d[int(c)]
+                        d = d[c]
                     else:
-                        d = d[1][int(c)]
+                        d = d[1][c]
                 except KeyError as e:
+                    print("KeyError:", e)
                     d = {}
                 s += c
             elif c == '-' and s and d_stack:
@@ -147,7 +173,7 @@ def main():
                 if len(probe) == 0 or not probe[1]:
                     temp.extend(probe[0])
                     continue
-                for stroke in [5, 4, 3, 2, 1]:
+                for stroke in [str(i) for i in range(1, 6)]:
                     if stroke in probe[1]:
                         temp.extend(probe[1][stroke][0])
                         probe_list.append(probe[1][stroke])
