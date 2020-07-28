@@ -114,6 +114,7 @@ def main():
         if i == "0":
             d = stroke_db
             s = ""
+            d_stack = []
             continue
         elif i == "q":
             break
