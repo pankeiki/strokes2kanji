@@ -111,9 +111,8 @@ def convert_kanji_to_strokes(stroke_db_root):
                 d = d[stroke][1]
             if strokes[-1] not in d:
                 d[strokes[-1]] = ([k], {})
-            else:
-                if k not in d[strokes[-1]][0]:
-                    d[strokes[-1]][0].append(k)
+            elif k not in d[strokes[-1]][0]:
+                d[strokes[-1]][0].append(k)
     return stroke_db
 
 def main():
@@ -169,7 +168,9 @@ def main():
                 if len(temp) > 9:
                     break
                 probe = probe_list.pop()
-                if len(probe) == 0 or not probe[1]:
+                if not probe:
+                    continue
+                if not probe[1]:
                     temp.extend(probe[0])
                     continue
                 for stroke in [str(i) for i in range(1, 6)]:
