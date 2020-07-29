@@ -7,6 +7,10 @@ import copy
 import json
 
 kanjivg_ns = "{http://kanjivg.tagaini.net}"
+settings = {
+    'display': ['ja_on', 'ja_kun', 'meaning'],
+    'lookahead': 10
+}
 
 def transform_stroke_type(s):
     # Possible stroke types, from https://github.com/KanjiVG/kanjivg/blob/master/strokes.txt:
@@ -160,11 +164,11 @@ def extract_kanji_info(root):
     return kanji_db
 
 def get_kanji_info(kanji_db, kanji):
-    if kanji not in kanji_db:
+    if kanji not in kanji_db or 'display' not in settings or not settings['display']:
         return ""
     s = "| "
     info = kanji_db[kanji]
-    for typ in ['ja_on', 'ja_kun', 'vietnam', 'meaning']:
+    for typ in settings['display']:
         if typ in info:
             s += ', '.join(info[typ])
             s += " | "
@@ -187,6 +191,19 @@ def load_cache(root, db_file, cache, loader):
             json.dump(db, f)
     return db
 
+def load_settings(root, filename):
+    global settings
+    temp_settings = {}
+    path = os.path.join(root, filename)
+    if os.path.exists(path):
+        try:
+            with open(path) as f:
+                temp_settings = json.load(f)
+        except json.decoder.JSONDecodeError as e:
+            print("Failed to decode {0}; using default settings.".format(path))
+    if temp_settings:
+        settings = temp_settings
+
 def main():
     root = "database"
     stroke_db_file = "kanjivg.xml"
@@ -195,10 +212,12 @@ def main():
     kanji_db_file = "kanjidic2.xml"
     kanji_db_cache = "kanjidic2.cache.json"
     kanji_db = load_cache(root, kanji_db_file,  kanji_db_cache, extract_kanji_info)
+    load_settings(root, "settings.json")
 
     d = stroke_db
     s = ""
     d_stack = []
+    lookahead = 10 if 'lookahead' not in settings else int(settings['lookahead'])
     while 1:
         i = input("> ")
         if i == "0":
@@ -223,16 +242,19 @@ def main():
                 s = s[:-1]
                 d = d_stack.pop()
         if d and s:
-            print("{0}:".format(s))
-            for kanji in d[0]:
-                print("{0}: {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
+            if 'display' not in settings or not settings['display']:
+                print("{0}: {1}".format(s, ' '.join(d[0])))
+            else:
+                print("{0}:".format(s))
+                for kanji in d[0]:
+                    print("{0}: {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
             probe_list = [d]
             temp = []
             while 1:
                 temp = list(set(temp) - set(d[0]))
                 if not probe_list:
                     break
-                if len(temp) > 9:
+                if len(temp) >= lookahead:
                     break
                 probe = probe_list.pop()
                 if not probe:
@@ -244,8 +266,11 @@ def main():
                     if stroke in probe[1]:
                         temp.extend(probe[1][stroke][0])
                         probe_list.append(probe[1][stroke])
-            for kanji in temp:
-                print("{0}: {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
+            if 'display' not in settings or not settings['display']:
+                print(' '.join(temp))
+            else:
+                for kanji in temp:
+                    print("{0}: {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
         elif not d:
             print("{0}: No match. Enter 0 to start over or - to go back once.".format(s))
 

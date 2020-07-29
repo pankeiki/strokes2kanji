@@ -11,6 +11,11 @@
     * keyboard package (`pip install [--user] keyboard`)
 
 # Instructions:
-1. Download kanjivg then extract into ./database/kanjivg.xml.
-2. Download kanjidic2 then extract into ./database/kanjidic2.xml.
-3. Run strokes2kanji.py without arguments.
+1. Create an empty `database` directory.
+2. Download kanjivg then extract into ./database/kanjivg.xml.
+3. Download kanjidic2 then extract into ./database/kanjidic2.xml.
+4. Run strokes2kanji.py without arguments.
+
+# Optional steps:
+* Copy ./default\_settings.json into ./database/settings.json and modify it to show more or fewer readings.
+    * Permissible 'display' types: 'pinyin', 'korean\_r', 'korean\_h', 'vietnam', 'ja\_on', 'ja\_kun', 'meaning'

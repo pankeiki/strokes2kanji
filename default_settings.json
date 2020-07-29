@@ -1,0 +1,4 @@
+{
+    "display": ["ja_on", "ja_kun", "meaning"],
+    "lookahead": 10
+}
