@@ -115,21 +115,86 @@ def convert_kanji_to_strokes(stroke_db_root):
                 d[strokes[-1]][0].append(k)
     return stroke_db
 
-def main():
+def extract_kanji_info(root):
+    # Kanji_db: Map each kanji to a dictionary of readings.
+    kanji_db = {}
+    # First element in kanjidic2 is "header". Skip it.
+    for n, character in enumerate(root[1:]):
+        kanji = None
+        reading_meaning = None
+
+        for element in character:
+            if element.tag == 'literal':
+                kanji = element.text
+            elif element.tag == 'reading_meaning':
+                reading_meaning = element
+            if kanji and reading_meaning:
+                break
+        if not kanji:
+            raise ValueError("Failed to find kanji or reading/meaning at character #{0}".format(n))
+        if not reading_meaning:
+            #print("{0} has no reading_meaning element, skipping".format(kanji))
+            continue
+
+        rmgroup = None
+        for element in reading_meaning:
+            if element.tag == 'rmgroup':
+                rmgroup = element
+            if rmgroup:
+                break
+
+        if not rmgroup:
+            #print("{0} has no rmgroup element, skipping".format(kanji))
+            continue
+        kanji_db[kanji] = {'meaning' : []}
+        for element in rmgroup:
+            if element.tag == 'reading':
+                typ = element.get('r_type')
+                rd = element.text
+                if typ not in kanji_db[kanji]:
+                    kanji_db[kanji][typ] = [rd]
+                else:
+                    kanji_db[kanji][typ].append(rd)
+            elif element.tag == 'meaning' and not element.items():
+                kanji_db[kanji]['meaning'].append(element.text)
+    return kanji_db
+
+def get_kanji_info(kanji_db, kanji):
+    if kanji not in kanji_db:
+        return ""
+    s = "| "
+    info = kanji_db[kanji]
+    for typ in ['ja_on', 'ja_kun', 'vietnam', 'meaning']:
+        if typ in info:
+            s += ', '.join(info[typ])
+            s += " | "
+    return s
+
+def load_cache(root, db_file, cache, loader):
     # Read from json cache if one is present.
-    cache_path = os.path.join("database", "kanjivg.cache.json")
-    stroke_db = {}
+    cache_path = os.path.join(root, cache)
+    db = {}
     if os.path.exists(cache_path):
         try:
             with open(cache_path) as f:
-                stroke_db = json.load(f)
+                db = json.load(f)
         except json.decoder.JSONDecodeError as e:
-            print("Failed to decode kanjivg cache; deleting.")
+            print("Failed to decode {0}; deleting.".format(cache))
             os.remove(cache_path)
-    if not stroke_db:
-        stroke_db = convert_kanji_to_strokes(parse_xml(os.path.join("database", "kanjivg.xml")).getroot())
+    if not db:
+        db = loader(parse_xml(os.path.join(root, db_file)).getroot())
         with open(cache_path, 'w') as f:
-            json.dump(stroke_db, f)
+            json.dump(db, f)
+    return db
+
+def main():
+    root = "database"
+    stroke_db_file = "kanjivg.xml"
+    stroke_db_cache = "kanjivg.cache.json"
+    stroke_db = load_cache(root, stroke_db_file, stroke_db_cache, convert_kanji_to_strokes)
+    kanji_db_file = "kanjidic2.xml"
+    kanji_db_cache = "kanjidic2.cache.json"
+    kanji_db = load_cache(root, kanji_db_file,  kanji_db_cache, extract_kanji_info)
 
     d = stroke_db
     s = ""
@@ -158,11 +223,13 @@ def main():
                 s = s[:-1]
                 d = d_stack.pop()
         if d and s:
-            print("{0}: {1}".format(s, ' '.join(d[0])))
+            print("{0}:".format(s))
+            for kanji in d[0]:
+                print("{0}: {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
             probe_list = [d]
             temp = []
             while 1:
-                temp = list(set(temp))
+                temp = list(set(temp) - set(d[0]))
                 if not probe_list:
                     break
                 if len(temp) > 9:
@@ -177,8 +244,8 @@ def main():
                     if stroke in probe[1]:
                         temp.extend(probe[1][stroke][0])
                         probe_list.append(probe[1][stroke])
-            if temp:
-                print(' '.join(temp))
+            for kanji in temp:
+                print("{0}: {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
         elif not d:
             print("{0}: No match. Enter 0 to start over or - to go back once.".format(s))
 
