@@ -270,6 +270,7 @@ def main():
                     temp.extend(node[0])
                     probe_list.append(node)
             temp.sort(key=lambda element: len(stroke_db[element]))
+            temp = temp[:lookahead]
             if 'display' not in settings or not settings['display']:
                 print(' '.join(temp))
             else:
