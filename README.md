@@ -1,3 +1,7 @@
+[![asciicast](https://asciinema.org/a/350528.svg)](https://asciinema.org/a/350528)
+
+Look up kanji by stroke type and order, similar to the stroke count method or wubihua in many Chinese IMEs, from the comfort of your terminal.
+
 # File dependencies:
 * kanjidic2.xml, extracted from the [KANJIDIC2](http://www.edrdg.org/wiki/index.php/KANJIDIC_Project) file ("kanjidic2.xml.gz").
     * [KANJIDIC License](http://www.edrdg.org/edrdg/licence.html).
@@ -8,7 +12,6 @@
 # Software dependencies:
 * Python 3.7
     * defusedxml package (`pip install [--user] defusedxml`)
-    * keyboard package (`pip install [--user] keyboard`)
 
 # Instructions:
 1. Create an empty `database` directory.
