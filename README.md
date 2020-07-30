@@ -17,5 +17,5 @@
 4. Run strokes2kanji.py without arguments.
 
 # Optional steps:
-* Copy ./default\_settings.json into ./database/settings.json and modify it to show more or fewer readings.
-    * Permissible 'display' types: 'pinyin', 'korean\_r', 'korean\_h', 'vietnam', 'ja\_on', 'ja\_kun', 'meaning'
+* Copy ./default\_settings.json into ./database/settings.json and modify it to show more or fewer readings or information.
+    * Permissible 'display' types: 'pinyin', 'korean\_r', 'korean\_h', 'vietnam', 'ja\_on', 'ja\_kun', 'meaning', 'remaining\_strokes'

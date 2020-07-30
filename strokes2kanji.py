@@ -275,7 +275,9 @@ def main():
                 print(' '.join(temp))
             else:
                 for kanji in temp:
-                    print("...{0} {1} {2}".format(stroke_db[kanji][len(s):], kanji, get_kanji_info(kanji_db, kanji)))
+                    if 'display' in settings and 'remaining_strokes' in settings['display']:
+                        print("...{0} ".format(stroke_db[kanji][len(s):]), end='')
+                    print("{0} {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
         elif not d:
             print("{0}: No match. Enter 0 to start over or - to go back once.".format(s))
 

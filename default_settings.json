@@ -1,4 +1,4 @@
 {
-    "display": ["ja_on", "ja_kun", "meaning"],
-    "lookahead": 10
+    "display": ["ja_on", "ja_kun", "meaning", "remaining_strokes"],
+    "lookahead": 5
 }
