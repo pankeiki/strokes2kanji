@@ -8,8 +8,8 @@ import json
 
 kanjivg_ns = "{http://kanjivg.tagaini.net}"
 settings = {
-    'display': ['ja_on', 'ja_kun', 'meaning'],
-    'lookahead': 10
+    'display': ['ja_on', 'ja_kun', 'meaning', 'remaining_strokes'],
+    'lookahead': 10,
 }
 
 def transform_stroke_type(s):
@@ -91,6 +91,8 @@ def convert_sparse_sets_to_full(space, sparse_set):
 def convert_kanji_to_strokes(stroke_db_root):
     # stroke_db: n-ary tree allowing traversal to kanji by stroke types.
     # For example, accessing stroke_db with 3 1 2 3 4 5 4 = 私
+    # stroke_db could also be indexed by the kanji itself to retrieve
+    # the ordered strokes.
     stroke_db = {}
     for kanji in stroke_db_root:
         if len(kanji) != 1:
@@ -117,6 +119,7 @@ def convert_kanji_to_strokes(stroke_db_root):
                 d[strokes[-1]] = ([k], {})
             elif k not in d[strokes[-1]][0]:
                 d[strokes[-1]][0].append(k)
+        stroke_db[k] = ''.join([str(s) for s in strokes_sets[0]])
     return stroke_db
 
 def extract_kanji_info(root):
@@ -168,8 +171,9 @@ def get_kanji_info(kanji_db, kanji):
         return ""
     s = "| "
     info = kanji_db[kanji]
+    permissible_kanji_info_type = ['pinyin', 'korean_r', 'korean_h', 'vietnam', 'ja_on', 'ja_kun', 'meaning']
     for typ in settings['display']:
-        if typ in info:
+        if typ in permissible_kanji_info_type and typ in info:
             s += ', '.join(info[typ])
             s += " | "
     return s
@@ -247,7 +251,7 @@ def main():
             else:
                 print("{0}:".format(s))
                 for kanji in d[0]:
-                    print("{0}: {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
+                    print("{0} {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
             probe_list = [d]
             temp = []
             while 1:
@@ -256,21 +260,21 @@ def main():
                     break
                 if len(temp) >= lookahead:
                     break
-                probe = probe_list.pop()
+                probe = probe_list.pop(0)
                 if not probe:
                     continue
                 if not probe[1]:
                     temp.extend(probe[0])
                     continue
-                for stroke in [str(i) for i in range(1, 6)]:
-                    if stroke in probe[1]:
-                        temp.extend(probe[1][stroke][0])
-                        probe_list.append(probe[1][stroke])
+                for node in probe[1].values():
+                    temp.extend(node[0])
+                    probe_list.append(node)
+            temp.sort(key=lambda element: len(stroke_db[element]))
             if 'display' not in settings or not settings['display']:
                 print(' '.join(temp))
             else:
                 for kanji in temp:
-                    print("{0}: {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
+                    print("...{0} {1} {2}".format(stroke_db[kanji][len(s):], kanji, get_kanji_info(kanji_db, kanji)))
         elif not d:
             print("{0}: No match. Enter 0 to start over or - to go back once.".format(s))
 
