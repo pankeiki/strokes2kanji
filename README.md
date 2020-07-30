@@ -1,7 +1,7 @@
 # File dependencies:
 * kanjidic2.xml, extracted from the [KANJIDIC2](http://www.edrdg.org/wiki/index.php/KANJIDIC_Project) file ("kanjidic2.xml.gz").
     * [KANJIDIC License](http://www.edrdg.org/edrdg/licence.html).
-* kanjivg-<datetime>.xml.gz, from the [kanjivg repository](https://github.com/KanjiVG/kanjivg/releases).
+* kanjivg-\<datetime\>.xml.gz, from the [kanjivg repository](https://github.com/KanjiVG/kanjivg/releases).
     * [KanjiVG License](https://github.com/KanjiVG/kanjivg/blob/master/COPYING).
     * [KanjiVG's Website](http://kanjivg.tagaini.net)
 
