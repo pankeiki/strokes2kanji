@@ -24,6 +24,7 @@ Look up kanji by stroke type and order, similar to the [stroke count method or w
     1. Enter `q` to quit, or just do Ctrl+C.
     2. Enter `0` to clear all entered strokes.
     3. Enter one or more `-` to undo the same number of entered strokes.
+    4. In addition to wubihua's 1 through 5 inputs, `*` is also usable as a wildcard stroke.
 
 ## Optional steps
 * Copy ./default\_settings.json into ./database/settings.json and modify it to show more or fewer readings or information.

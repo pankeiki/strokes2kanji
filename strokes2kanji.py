@@ -218,7 +218,7 @@ def main():
     kanji_db = load_cache(root, kanji_db_file,  kanji_db_cache, extract_kanji_info)
     load_settings(root, "settings.json")
 
-    d = stroke_db
+    d = [stroke_db]
     s = ""
     d_stack = []
     lookahead = 10 if 'lookahead' not in settings else int(settings['lookahead'])
@@ -228,33 +228,56 @@ def main():
             break
         for c in i:
             if c in "12345":
-                d_stack.append(d)
-                try:
-                    if not s:
-                        d = d[c]
-                    else:
-                        d = d[1][c]
-                except KeyError as e:
-                    d = {}
+                d_stack.append(copy.copy(d))
+                prune = []
+                add = []
+                for branch in d:
+                    prune.append(branch)
+                    if s:
+                        branch = branch[1]
+                    if c in branch:
+                        add.append(branch[c])
+                for branch in prune:
+                    d.remove(branch)
+                d.extend(add)
+                s += c
+            elif c == '*':
+                d_stack.append(copy.copy(d))
+                prune = []
+                add = []
+                for branch in d:
+                    prune.append(branch)
+                    if s:
+                        branch = branch[1]
+                    for stroke in range(1, 6):
+                        stroke = str(stroke)
+                        if stroke in branch:
+                            add.append(branch[stroke])
+                for branch in prune:
+                    d.remove(branch)
+                d.extend(add)
                 s += c
             elif c == '-' and s and d_stack:
                 s = s[:-1]
                 d = d_stack.pop()
             elif c == '0':
-                d = stroke_db
+                d = [stroke_db]
                 s = ""
                 d_stack = []
         if d and s:
+            matches = set()
+            for branch in d:
+                matches |= set(branch[0])
             if 'display' not in settings or not settings['display']:
-                print("{0}: {1}".format(s, ' '.join(d[0])))
+                print("{0}: {1}".format(s, ' '.join(matches)))
             else:
                 print("{0}:".format(s))
-                for kanji in d[0]:
+                for kanji in matches:
                     print("{0} {1}".format(kanji, get_kanji_info(kanji_db, kanji)))
-            probe_list = [d]
+            probe_list = copy.copy(d)
             temp = []
             while 1:
-                temp = list(set(temp) - set(d[0]))
+                temp = list(set(temp) - matches)
                 if not probe_list:
                     break
                 if len(temp) >= lookahead:
