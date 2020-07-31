@@ -224,12 +224,7 @@ def main():
     lookahead = 10 if 'lookahead' not in settings else int(settings['lookahead'])
     while 1:
         i = input("> ")
-        if i == "0":
-            d = stroke_db
-            s = ""
-            d_stack = []
-            continue
-        elif i == "q":
+        if i == "q":
             break
         for c in i:
             if c in "12345":
@@ -245,6 +240,10 @@ def main():
             elif c == '-' and s and d_stack:
                 s = s[:-1]
                 d = d_stack.pop()
+            elif c == '0':
+                d = stroke_db
+                s = ""
+                d_stack = []
         if d and s:
             if 'display' not in settings or not settings['display']:
                 print("{0}: {1}".format(s, ' '.join(d[0])))
